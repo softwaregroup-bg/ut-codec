@@ -10,14 +10,12 @@
     "lodash.isobject": "3.0.2",
     "lodash.merge": "4.6.0",
     "lodash.omit": "4.5.0",
-    "ut-bitsyntax": "^6.0.7"
+    "ut-bitsyntax": "^6.0.7",
+    "ut-error": "^5.4.0"
   },
   "devDependencies": {
     "adiff": "0.2.13",
     "ut-tools": "^5.14.4"
-  },
-  "peerDependencies": {
-    "ut-error": "^5.4.0"
   },
   "scripts": {
     "lint": "ut-lint .",
