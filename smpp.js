@@ -188,7 +188,7 @@ SmppParser.prototype.decode = function(buff, $meta) {
                     throw new Error('Unable to match TLV!');
                 }
                 do {
-                    hex = ('0000' + tlv.t.toString(16).toUpperCase()).slice(-4);
+                    var hex = ('0000' + tlv.t.toString(16).toUpperCase()).slice(-4);
                     tlv.t = tlvTagsById[hex] || 'tlv_' + hex.toLowerCase();
                     tlvs[tlv.t] = tlv.v;
                     tlv = bitsyntax.match(this.tlvPattern, tlv.next);
