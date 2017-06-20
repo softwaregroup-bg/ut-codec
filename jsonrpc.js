@@ -1,8 +1,12 @@
 'use strict';
+const errors = require('./jsonrpcErrors');
 
 module.exports = class JsonRpc {
-    constructor({encoding = 'utf8'}) {
+    constructor({version = '2.0', encoding = 'utf8', nullId = false, fractionalId = false}) {
+        this.version = version;
         this.encoding = encoding;
+        this.nullId = nullId;
+        this.fractionalId = fractionalId;
     }
 
     getId(context) {
@@ -14,39 +18,59 @@ module.exports = class JsonRpc {
         }
     }
 
-    decode(msg, $meta, context) {
-        const packet = msg.toString(this.encoding);
-        const json = JSON.parse(packet);
-        $meta.opcode = json.method;
-        if (!json.id) {
-            $meta.mtid = 'notification';
-            return json.params || {};
-        }
-        $meta.trace = json.id;
-        switch (['error', 'result', 'params'].find(key => key in json)) {
-            case 'error':
-                $meta.mtid = 'error';
-                return Object.assign(Error(), json.error);
-            case 'result':
-                $meta.mtid = 'response';
-                return json.result;
-            case 'params':
-                $meta.mtid = 'request';
-                return json.params;
-            default:
-                $meta.mtid = 'notification';
-                return {};
+    parseJson(jsonString) {
+        try {
+            return JSON.parse(jsonString);
+        } catch (e) {
+            throw errors.InvalidJson(e);
         }
     }
 
-    encode(msg, $meta, context) {
+    decode(msg, $meta, context) {
+        const packet = msg.toString(this.encoding);
+        const json = this.parseJson(packet);
+
+        if (json.jsonrpc !== this.version) {
+            throw errors.InvalidVersion(Error(`Expected version ${this.version} but received ${json.jsonrpc}`));
+        } else if (!this.nullId && json.id === null) {
+            throw errors.InvalidMessageID(Error('Received null id value. nullId option is set to false'));
+        } else if (!['string', 'number', 'undefined'].includes(typeof json.id)) {
+            throw errors.InvalidMessageID(Error('Received Invalid id type'));
+        } else if (!this.fractionalId && typeof json.id === 'number' && json.id % 1 > 0) {
+            throw errors.InvalidMessageID(Error('Received fractional number as id. fractionalId option is set to false'));
+        } else if (json.id === '') {
+            throw errors.InvalidMessageID(Error('Received empty id'));
+        } else if (typeof json.method !== 'string' || json.method === '') {
+            throw errors.InvalidMethod(Error('Received nvalid method type or empty'));
+        } else if (json.id === undefined && typeof json.params !== 'object') {
+            throw errors.InvalidPayload(Error('Received notification with missing or invalid payload member'));
+        } else if (typeof json.params !== 'object' && typeof json.result !== 'object' && typeof json.error !== 'object') {
+            throw errors.InvalidPayload(Error('Received invalid payload'));
+        } else if (['params', 'result', 'error'].filter(key => !!json[key]).length > 1) {
+            throw errors.InvalidPayload(Error('Received more than one payload member'));
+        }
+
+        const payloadMember = ['params', 'result', 'error'].find(key => key in json);
+        $meta.method = $meta.opcode = json.method;
+        $meta.trace = json.id;
+        $meta.mtid = {
+            error: 'error',
+            result: 'response',
+            params: 'request',
+            notification: 'notification'
+        }[json.id ? payloadMember : 'notification'];
+        return json[payloadMember];
+    }
+
+    encode(msg = {}, $meta, context) {
+        if (($meta.mtid === 'error' || $meta.mtid === 'response') && !$meta.trace) {
+            throw errors.InvalidMessageID(Error('Cannot send response without trace'));
+        } else if (!$meta.opcode) {
+            throw errors.InvalidMethod(Error('Missing opcode'));
+        }
         const json = {
-            jsonrpc: '2.0',
-            id: undefined,
-            method: $meta.opcode,
-            params: undefined,
-            result: undefined,
-            error: undefined
+            jsonrpc: this.version,
+            method: $meta.opcode
         };
         switch ($meta.mtid) {
             case 'request':
