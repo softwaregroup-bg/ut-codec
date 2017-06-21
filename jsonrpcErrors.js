@@ -1,17 +1,17 @@
 const create = require('ut-error').define;
 
-const JsonRPC = create('JsonRPC');
-const InvalidJson = create('Invalid json', JsonRPC);
-const InvalidVersion = create('Invalid version', InvalidJson);
-const InvalidMethod = create('Invalid method', InvalidJson);
-const InvalidPayload = create('Invalid payload', InvalidJson);
-const InvalidMessageID = create('Invalid message id', InvalidJson);
+const jsonRPC = create('jsonRPC');
+const invalidJson = create('invalidJson', jsonRPC, 'Invalid json');
+const invalidVersion = create('invalidVersion', invalidJson, 'Invalid jsonrpc version');
+const invalidMethod = create('invalidMethod', invalidJson, 'Invalid or missing method');
+const invalidPayload = create('invalidPayload', invalidJson, 'Invalid or missing jsonrpc payload');
+const invalidMessageID = create('invalidMessageID', invalidJson, 'Invalid message id');
 
 module.exports = {
-    JsonRPC,
-    InvalidJson,
-    InvalidVersion,
-    InvalidMethod,
-    InvalidPayload,
-    InvalidMessageID
+    jsonRPC,
+    invalidJson,
+    invalidVersion,
+    invalidMethod,
+    invalidPayload,
+    invalidMessageID
 };

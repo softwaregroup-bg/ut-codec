@@ -22,7 +22,7 @@ module.exports = class JsonRpc {
         try {
             return JSON.parse(jsonString);
         } catch (e) {
-            throw errors.InvalidJson(e);
+            throw errors.invalidJson(e);
         }
     }
 
@@ -31,23 +31,23 @@ module.exports = class JsonRpc {
         const json = this.parseJson(packet);
 
         if (json.jsonrpc !== this.version) {
-            throw errors.InvalidVersion(Error(`Expected version ${this.version} but received ${json.jsonrpc}`));
+            throw errors.invalidVersion(`Expected version ${this.version} but received ${json.jsonrpc}`);
         } else if (!this.nullId && json.id === null) {
-            throw errors.InvalidMessageID(Error('Received null id value. nullId option is set to false'));
+            throw errors.invalidMessageID('Received null id value. nullId option is set to false');
         } else if (!['string', 'number', 'undefined'].includes(typeof json.id)) {
-            throw errors.InvalidMessageID(Error('Received Invalid id type'));
+            throw errors.invalidMessageID('Received Invalid id type');
         } else if (!this.fractionalId && typeof json.id === 'number' && json.id % 1 > 0) {
-            throw errors.InvalidMessageID(Error('Received fractional number as id. fractionalId option is set to false'));
+            throw errors.invalidMessageID('Received fractional number as id. fractionalId option is set to false');
         } else if (json.id === '') {
-            throw errors.InvalidMessageID(Error('Received empty id'));
+            throw errors.invalidMessageID('Received empty id');
         } else if (typeof json.method !== 'string' || json.method === '') {
-            throw errors.InvalidMethod(Error('Received nvalid method type or empty'));
+            throw errors.invalidMethod('Received nvalid method type or empty');
         } else if (json.id === undefined && typeof json.params !== 'object') {
-            throw errors.InvalidPayload(Error('Received notification with missing or invalid payload member'));
+            throw errors.invalidPayload('Received notification with missing or invalid payload member');
         } else if (typeof json.params !== 'object' && typeof json.result !== 'object' && typeof json.error !== 'object') {
-            throw errors.InvalidPayload(Error('Received invalid payload'));
+            throw errors.invalidPayload('Received invalid payload');
         } else if (['params', 'result', 'error'].filter(key => !!json[key]).length > 1) {
-            throw errors.InvalidPayload(Error('Received more than one payload member'));
+            throw errors.invalidPayload('Received more than one payload member');
         }
 
         const payloadMember = ['params', 'result', 'error'].find(key => key in json);
@@ -64,9 +64,9 @@ module.exports = class JsonRpc {
 
     encode(msg = {}, $meta, context) {
         if (($meta.mtid === 'error' || $meta.mtid === 'response') && !$meta.trace) {
-            throw errors.InvalidMessageID(Error('Cannot send response without trace'));
+            throw errors.invalidMessageID('Cannot send response without trace');
         } else if (!$meta.opcode) {
-            throw errors.InvalidMethod(Error('Missing opcode'));
+            throw errors.invalidMethod('Missing opcode');
         }
         const json = {
             jsonrpc: this.version,
