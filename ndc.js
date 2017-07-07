@@ -2,6 +2,8 @@ var merge = require('lodash.merge');
 var map = require('./ndcMap');
 var defaultFormat = require('./ndc.messages');
 var emvTagsMap = require('./ndc.emv.tags.map');
+var emvLongTags = ['5f', '9f'];
+var emvConstructedTags = ['70'];
 
 function NDC(config, validator, logger) {
     this.fieldSeparator = config.fieldSeparator || '\u001c';
@@ -294,24 +296,24 @@ var parsers = {
         journalData
     }),
     lastTransaction: fields => {
-        var _2 = fields.find(field => field.substring(0, 1) === '2');
-        _2 = _2 && _2.match(/^2(\d{4})(\d)(\d{5})(\d{5})(\d{5})(\d{5})/);
-        return _2 && {
-            sernum: _2[1],
-            status: _2[2],
-            notes1: parseInt(_2[3]),
-            notes2: parseInt(_2[4]),
-            notes3: parseInt(_2[5]),
-            notes4: parseInt(_2[6])
+        var field2 = fields.find(field => field.substring(0, 1) === '2');
+        field2 = field2 && field2.match(/^2(\d{4})(\d)(\d{5})(\d{5})(\d{5})(\d{5})/);
+        return field2 && {
+            sernum: field2[1],
+            status: field2[2],
+            notes1: parseInt(field2[3]),
+            notes2: parseInt(field2[4]),
+            notes3: parseInt(field2[5]),
+            notes4: parseInt(field2[6])
         };
     },
     smartCardData: (fields) => {
         // There are 16 available CAM flags.These are encoded as the bits in two bytes, and are converted to ASCII hex(four bytes) for transmission. Each can have the value 0x0 or 0x1
-        // TODO parse _5cam[1] document 4-8 APTRA Advance NDC and NDC+, EMV ICC Reference Manual
-        var _5cam = fields.find(field => field.substring(0, 4) === '5CAM');
-        _5cam = (_5cam && _5cam.substring(4)) || '';
-        _5cam = _5cam && _5cam.match(/^([\s\S]{4})(.*)/);
-        return Object.assign({}, parsers.camFlags(new Buffer(_5cam[1], 'hex')), {emvTags: parsers.emvTags(_5cam[2], {})});
+        var smartCardData = fields.find(field => field.substring(0, 4) === '5CAM');
+        smartCardData = (smartCardData && smartCardData.substring(4)) || '';
+        var camFlags = smartCardData.substring(0, 4);
+        var emvTags = smartCardData.substring(4);
+        return Object.assign({}, parsers.camFlags(new Buffer(camFlags, 'hex')), {emvTags: parsers.emvTags(emvTags, {})});
     },
     camFlags: (buffer) => {
         var camFlags = {};
@@ -338,11 +340,10 @@ var parsers = {
     },
     emvTags: (data, o) => {
         // data = ['9F02', '81', '05', '00000500009F0306000000000009F1A0206085F2A0206089A031707069C01019F370400001486'].join('');
-        var longTags = ['5f', '9f'];
         var tag;
         var len;
         var val;
-        if (longTags.indexOf(data.substr(0, 2).toLowerCase()) >= 0) { // 2 bytes tag
+        if (emvLongTags.indexOf(data.substr(0, 2).toLowerCase()) >= 0) { // 2 bytes tag
             tag = data.substr(0, 4);
             data = data.substr(4);
         } else {
@@ -351,9 +352,9 @@ var parsers = {
         }
         var tagTranslated = emvTagsMap.decode[tag.toUpperCase()] || tag;
         o[tagTranslated] = {tag};
-        len = (new Buffer(data.substr(0, 2), 'hex')).readInt8();
+        len = parseInt('0x' + data.substr(0, 2), 'hex');
         data = data.substr(2);
-        if (len < 0) { // size is big
+        if (len >= 128) { // size is big
             var byteNumSize = 0;
             var cur = 128;
             while (cur >= 1) { // calculate big size
@@ -362,14 +363,17 @@ var parsers = {
                     byteNumSize = byteNumSize | cur;
                 }
             }
-            len = (new Buffer(data.substr(0, byteNumSize * 2), 'hex'));
-            len = len.readUIntBE(0, byteNumSize);
+            len = parseInt('0x' + data.substr(0, byteNumSize * 2), 'hex');
             data = data.substr(byteNumSize * 2);
         }
         o[tagTranslated].len = len;
         val = data.substr(0, len * 2);
         data = data.substr(len * 2);
-        o[tagTranslated].val = val;
+        if (emvConstructedTags.indexOf(tag) >= 0) {
+            o[tagTranslated].val = parsers.emvTags(val, {});
+        } else {
+            o[tagTranslated].val = val;
+        }
         if (data.length) {
             return parsers.emvTags(data, o);
         }
