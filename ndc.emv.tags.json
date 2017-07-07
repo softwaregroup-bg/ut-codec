@@ -1,0 +1,20 @@
+﻿{
+    "map": {
+        "decode": {
+            "9F02": "amountAuthorised",
+            "9F03": "amountOther",
+            "9F1A": "terminalCountryCode",
+            "5F2A": "transactionCurrencyCode",
+            "9A":   "transactionDate",
+            "9C":   "transactionType",
+            "70":   "templateAEFData",
+            "90":   "issuerPublicKeyCertificate",
+            "92":   "issuerPublicKeyRemainder",
+            "8F":   "certificationAuthorityPublicKeyIndex",
+            "9F37": "unpredictableNumber",
+            "9F32": "issuerPublicKeyExponent"
+        }
+    },
+    "longTags": ["5f", "9f"],
+    "constructedTags": ["56", "61", "62", "70", "71", "72", "73", "77", "6F", "9F20", "9F21", "9F22", "9F23", "9F26", "9F27", "9F2D", "9F2E", "9F2F", "9F33", "9F34", "9F35", "9F36", "9F38", "9F39", "9F3A", "9F3B", "9F3C", "9F3D", "A5"]
+}

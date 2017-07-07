@@ -1,9 +1,10 @@
 var merge = require('lodash.merge');
 var map = require('./ndcMap');
 var defaultFormat = require('./ndc.messages');
-var emvTagsMap = require('./ndc.emv.tags.map');
-var emvLongTags = ['5f', '9f'];
-var emvConstructedTags = ['70'];
+var emvTagsConfig = require('./ndc.emv.tags');
+var emvTagsMap = emvTagsConfig.map;
+var emvLongTags = emvTagsConfig.longTags;
+var emvConstructedTags = emvTagsConfig.constructedTags;
 
 function NDC(config, validator, logger) {
     this.fieldSeparator = config.fieldSeparator || '\u001c';
@@ -352,8 +353,12 @@ var parsers = {
         }
         var tagTranslated = emvTagsMap.decode[tag.toUpperCase()] || tag;
         o[tagTranslated] = {tag};
-        len = parseInt('0x' + data.substr(0, 2), 'hex');
+        var lenStr = data.substr(0, 2);
+        len = (lenStr === '') ? 0 : parseInt('0x' + data.substr(0, 2), 'hex');
         data = data.substr(2);
+        if (len > data.length * 2) {
+            throw new Error('Data integrity error');
+        }
         if (len >= 128) { // size is big
             var byteNumSize = 0;
             var cur = 128;
@@ -367,8 +372,13 @@ var parsers = {
             data = data.substr(byteNumSize * 2);
         }
         o[tagTranslated].len = len;
-        val = data.substr(0, len * 2);
-        data = data.substr(len * 2);
+        if (!len) {
+            len = 0;
+            val = '';
+        } else {
+            val = data.substr(0, len * 2);
+            data = data.substr(len * 2);
+        }
         if (emvConstructedTags.indexOf(tag) >= 0) {
             o[tagTranslated].val = parsers.emvTags(val, {});
         } else {
