@@ -1,6 +1,6 @@
 {
   "name": "ut-codec",
-  "version": "5.10.0-smartCardData.4",
+  "version": "5.10.0-smartCardData.5",
   "main": "./index.js",
   "dependencies": {
     "iconv-lite": "0.4.15",
