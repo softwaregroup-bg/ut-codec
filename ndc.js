@@ -4,7 +4,6 @@ var defaultFormat = require('./ndc.messages');
 var emvTagsConfig = require('./ndc.emv.tags');
 var emvTagsMap = emvTagsConfig.map;
 var emvLongTags = emvTagsConfig.longTags;
-var emvConstructedTags = emvTagsConfig.constructedTags;
 
 function NDC(config, validator, logger) {
     this.fieldSeparator = config.fieldSeparator || '\u001c';
