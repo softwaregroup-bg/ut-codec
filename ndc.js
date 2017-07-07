@@ -340,7 +340,6 @@ var parsers = {
         return {camFlags};
     },
     emvTags: (data, o) => {
-        // data = ['9F02', '81', '05', '00000500009F0306000000000009F1A0206085F2A0206089A031707069C01019F370400001486'].join('');
         var tag;
         var len;
         var val;
