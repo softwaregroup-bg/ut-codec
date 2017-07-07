@@ -1,6 +1,7 @@
 var merge = require('lodash.merge');
 var map = require('./ndcMap');
 var defaultFormat = require('./ndc.messages');
+var emvTagsMap = require('./ndc.emv.tags.map');
 
 function NDC(config, validator, logger) {
     this.fieldSeparator = config.fieldSeparator || '\u001c';
@@ -348,7 +349,8 @@ var parsers = {
             tag = data.substr(0, 2);
             data = data.substr(2);
         }
-        o[tag] = {};
+        var tagTranslated = emvTagsMap.decode[tag.toUpperCase()] || tag;
+        o[tagTranslated] = {tag};
         len = (new Buffer(data.substr(0, 2), 'hex')).readInt8();
         data = data.substr(2);
         if (len < 0) { // size is big
@@ -364,10 +366,10 @@ var parsers = {
             len = len.readUIntBE(0, byteNumSize);
             data = data.substr(byteNumSize * 2);
         }
-        o[tag].len = len;
+        o[tagTranslated].len = len;
         val = data.substr(0, len * 2);
         data = data.substr(len * 2);
-        o[tag].val = val;
+        o[tagTranslated].val = val;
         if (data.length) {
             return parsers.emvTags(data, o);
         }
