@@ -354,7 +354,7 @@ var parsers = {
         var tagTranslated = emvTagsMap.decode[tag.toUpperCase()] || tag;
         o[tagTranslated] = {tag};
         var lenStr = data.substr(0, 2);
-        len = (lenStr === '') ? 0 : parseInt('0x' + data.substr(0, 2), 'hex');
+        len = (lenStr === '') ? 0 : parseInt(data.substr(0, 2), 16);
         data = data.substr(2);
         if (len > data.length * 2) {
             throw new Error('Data integrity error');
@@ -368,7 +368,7 @@ var parsers = {
                     byteNumSize = byteNumSize | cur;
                 }
             }
-            len = parseInt('0x' + data.substr(0, byteNumSize * 2), 'hex');
+            len = parseInt(data.substr(0, byteNumSize * 2), 16);
             data = data.substr(byteNumSize * 2);
         }
         o[tagTranslated].len = len;
@@ -379,7 +379,7 @@ var parsers = {
             val = data.substr(0, len * 2);
             data = data.substr(len * 2);
         }
-        if (emvConstructedTags.indexOf(tag) >= 0) {
+        if ((parseInt(tag, 16) & 64) === 64) {
             o[tagTranslated].val = parsers.emvTags(val, {});
         } else {
             o[tagTranslated].val = val;
