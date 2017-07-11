@@ -377,7 +377,8 @@ var parsers = {
             val = data.substr(0, len * 2);
             data = data.substr(len * 2);
         }
-        if ((parseInt(tag, 16) & 64) === 64) {
+        let constructedTagByte = (new Buffer(tag, 'hex')).slice(0, 1);
+        if ((constructedTagByte & 32) === 32) {
             o[tagTranslated].val = parsers.emvTags(val, {});
         } else {
             o[tagTranslated].val = val;
