@@ -12,8 +12,22 @@
             "92":   "issuerPublicKeyRemainder",
             "8F":   "certificationAuthorityPublicKeyIndex",
             "9F37": "unpredictableNumber",
-            "9F32": "issuerPublicKeyExponent"
+            "9F32": "issuerPublicKeyExponent",
+            "8C": "CDOL1",
+            "8D": "CDOL2",
+            "97": "TDOL",
+            "9F38": "PDOL",
+            "9F49": "DDOL"
         }
     },
-    "longTags": ["5f", "9f"]
+    "longTags": ["5f", "9f"],
+    "dolNumericTypes": {
+        "9F37": "n",
+        "9F02": "n",
+        "9F03": "n",
+        "9F1A": "n",
+        "5F2A": "nc",
+        "9A": "n",
+        "9C": "n"
+    }
 }
