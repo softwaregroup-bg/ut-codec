@@ -3,6 +3,13 @@ var map = require('./ndcMap');
 var defaultFormat = require('./ndc.messages');
 var emvTagsConfig = require('./ndc.emv.tags');
 var emvTagsMap = emvTagsConfig.map;
+emvTagsConfig.map.encode = Object.keys(emvTagsConfig.map.decode)
+    .map((e) => {
+        let o = {};
+        o[emvTagsConfig.map.decode[e]] = e;
+        return o;
+    })
+    .reduce((accum, cur) => Object.assign(accum, cur), {});
 var emvLongTags = emvTagsConfig.longTags;
 var emvDolNumericTypes = emvTagsConfig.dolNumericTypes;
 
