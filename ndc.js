@@ -16,6 +16,75 @@ function emvEncodeMapTags() {
         .reduce((accum, cur) => Object.assign(accum, cur), {});
 }
 
+function packCamFlags(data) {
+    return data.reduce((buf, byte, idx) => {
+        buf[idx] = byte.reduce((b, bit, idx) => {
+            return (b << 1) | bit;
+        }, buf[idx]);
+        return buf;
+    }, new Buffer([0, 0])).toString('hex');
+}
+function translateTag(tag) {
+    return emvTagsMap.encode[tag] || tag;
+}
+function packEmvTags(data) {
+    var dolOrder = ['CDOL1', 'CDOL2', 'TDOL', 'PDOL', 'DDOL'];
+    let result = '';
+    // transform data in dols
+    data = Object.keys(data)
+        .filter((k) => (~k.indexOf('DOL')))
+        .map((k) => ({
+            tag: k,
+            data: data[k]
+                .map((e) => {
+                    let k = Object.keys(e).pop();
+                    let tagTranslated = translateTag(k);
+                    return [tagTranslated, e[k]].join('');
+                })
+        }))
+        .reduce((data, dol) => {
+            data[dol.tag] = dol.data.join('');
+            return data;
+        }, data);
+
+    let allTags = Object.keys(data);
+    // make sure that dols are constructed in order
+    let allDols = dolOrder
+        .map((dol) => (~allTags.indexOf(dol) ? dol : 0))
+        .filter((e) => e);
+    // append dols to result
+    result = allDols
+        .reduce((r, dol) => {
+            let tagTranslated = translateTag(dol);
+            let d = data[dol];
+            return `${r}${tagTranslated}${d.length / 2}${d}`;
+        }, '');
+    // cleanup dols
+    data = allDols
+        .reduce((r, dol) => {
+            delete r[dol];
+            return r;
+        }, data);
+    // append all fields left to result
+    return result + Object.keys(data).map((e) => {
+        let tagTranslated = translateTag(e);
+        let val = data[e];
+        var len = val.length / 2;
+        return `${tagTranslated}${len}${val}`;
+    }).join('');
+}
+
+function packSmartCardData(camFlags, emvTags) {
+    let result = '5CAM';
+    if (camFlags) {
+        result += packCamFlags(camFlags);
+    }
+    if (emvTags) {
+        result += packEmvTags(emvTags);
+    }
+    return result;
+}
+
 function NDC(config, validator, logger) {
     this.fieldSeparator = config.fieldSeparator || '\u001c';
     this.val = validator || null;
@@ -328,27 +397,28 @@ var parsers = {
         return Object.assign({}, parsers.camFlagsDecode(new Buffer(camFlags, 'hex')), {emvTags: parsers.emvDolsDecode(parsers.emvTagsDecode(emvTags, {}))});
     },
     camFlagsDecode: (buffer) => {
-        var camFlags = {};
-        var b1 = buffer.slice(0, 1).readInt8();
-        var b2 = buffer.slice(1, 2).readInt8();
+        let b1 = buffer.slice(0, 1).readInt8();
+        let b2 = buffer.slice(1, 2).readInt8();
+        let a = [];
+        let b = [];
 
-        camFlags['1.1'] = 0;
-        camFlags['1.2'] = ((b1 & 2) === 2) ? 1 : 0;
-        camFlags['1.3'] = ((b1 & 4) === 4) ? 1 : 0;
-        camFlags['1.4'] = ((b1 & 8) === 8) ? 1 : 0;
-        camFlags['1.5'] = ((b1 & 16) === 16) ? 1 : 0;
-        camFlags['1.6'] = ((b1 & 32) === 32) ? 1 : 0;
-        camFlags['1.7'] = 0;
-        camFlags['1.8'] = 0;
-        camFlags['2.1'] = 0;
-        camFlags['2.2'] = 0;
-        camFlags['2.3'] = 0;
-        camFlags['2.4'] = ((b2 & 8) === 8) ? 1 : 0;
-        camFlags['2.5'] = 0;
-        camFlags['2.6'] = ((b2 & 32) === 32) ? 1 : 0;
-        camFlags['2.7'] = ((b2 & 64) === 64) ? 1 : 0;
-        camFlags['2.8'] = ((b2 & 128) === 128) ? 1 : 0;
-        return {camFlags};
+        a.push(0);
+        a.push(((b1 & 2) === 2) ? 1 : 0);
+        a.push(((b1 & 4) === 4) ? 1 : 0);
+        a.push(((b1 & 8) === 8) ? 1 : 0);
+        a.push(((b1 & 16) === 16) ? 1 : 0);
+        a.push(((b1 & 32) === 32) ? 1 : 0);
+        a.push(0);
+        a.push(0);
+        b.push(0);
+        b.push(0);
+        b.push(0);
+        b.push(((b2 & 8) === 8) ? 1 : 0);
+        b.push(0);
+        b.push(((b2 & 32) === 32) ? 1 : 0);
+        b.push(((b2 & 64) === 64) ? 1 : 0);
+        b.push(((b2 & 128) === 128) ? 1 : 0);
+        return {camFlags: [a, b]};
     },
     emvTagsDecode: (data, o, dolIdx) => {
         var tag;
@@ -699,6 +769,9 @@ NDC.prototype.encode = function(message, $meta, context) {
         });
         if (message.mac) {
             bufferString += this.fieldSeparator + message.mac;
+        }
+        if (message.emvTags || message.camFlags) {
+            bufferString += packSmartCardData(message.camFlags, message.emvTags);
         }
         return new Buffer(bufferString);
     }
