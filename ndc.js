@@ -3,15 +3,18 @@ var map = require('./ndcMap');
 var defaultFormat = require('./ndc.messages');
 var emvTagsConfig = require('./ndc.emv.tags');
 var emvTagsMap = emvTagsConfig.map;
-emvTagsConfig.map.encode = Object.keys(emvTagsConfig.map.decode)
-    .map((e) => {
-        let o = {};
-        o[emvTagsConfig.map.decode[e]] = e;
-        return o;
-    })
-    .reduce((accum, cur) => Object.assign(accum, cur), {});
 var emvLongTags = emvTagsConfig.longTags;
 var emvDolNumericTypes = emvTagsConfig.dolNumericTypes;
+
+function emvEncodeMapTags() {
+    emvTagsConfig.map.encode = Object.keys(emvTagsConfig.map.decode)
+        .map((e) => {
+            let o = {};
+            o[emvTagsConfig.map.decode[e]] = e;
+            return o;
+        })
+        .reduce((accum, cur) => Object.assign(accum, cur), {});
+}
 
 function NDC(config, validator, logger) {
     this.fieldSeparator = config.fieldSeparator || '\u001c';
@@ -31,6 +34,7 @@ NDC.prototype.init = function(config) {
         var code = (mf.values.messageClass || '') + (mf.values.messageSubclass || '') + '|' + (mf.values.commandCode || '') + (mf.values.commandModifier || '');
         this.codes[code] = mf;
     });
+    emvEncodeMapTags();
 };
 
 var parsers = {
@@ -321,9 +325,9 @@ var parsers = {
         smartCardData = (smartCardData && smartCardData.substring(4)) || '';
         var camFlags = smartCardData.substring(0, 4);
         var emvTags = smartCardData.substring(4);
-        return Object.assign({}, parsers.camFlags(new Buffer(camFlags, 'hex')), {emvTags: parsers.emvDols(parsers.emvTags(emvTags, {}))});
+        return Object.assign({}, parsers.camFlagsDecode(new Buffer(camFlags, 'hex')), {emvTags: parsers.emvDolsDecode(parsers.emvTagsDecode(emvTags, {}))});
     },
-    camFlags: (buffer) => {
+    camFlagsDecode: (buffer) => {
         var camFlags = {};
         var b1 = buffer.slice(0, 1).readInt8();
         var b2 = buffer.slice(1, 2).readInt8();
@@ -346,7 +350,7 @@ var parsers = {
         camFlags['2.8'] = ((b2 & 128) === 128) ? 1 : 0;
         return {camFlags};
     },
-    emvTags: (data, o, dolIdx) => {
+    emvTagsDecode: (data, o, dolIdx) => {
         var tag;
         var len;
         var val;
@@ -398,12 +402,12 @@ var parsers = {
         }
         let constructedTagByte = (new Buffer(tag, 'hex')).slice(0, 1);
         if ((constructedTagByte & 32) === 32) {
-            o[tagTranslated].val = (isDol ? parsers.emvTags(val, {}, 1) : parsers.emvTags(val, {}, (dolIdx ? dolIdx + 1 : dolIdx)));
+            o[tagTranslated].val = (isDol ? parsers.emvTagsDecode(val, {}, 1) : parsers.emvTagsDecode(val, {}, (dolIdx ? dolIdx + 1 : dolIdx)));
         } else {
-            o[tagTranslated].val = (isDol ? parsers.emvTags(val, {}, 1) : val);
+            o[tagTranslated].val = (isDol ? parsers.emvTagsDecode(val, {}, 1) : val);
         }
         if (data.length) {
-            return parsers.emvTags(data, o, (dolIdx ? dolIdx + 1 : dolIdx));
+            return parsers.emvTagsDecode(data, o, (dolIdx ? dolIdx + 1 : dolIdx));
         }
         return o;
     },
@@ -428,7 +432,7 @@ var parsers = {
     EMV 4.3 Book 3                              5 Data Elements and Files
     Application Specification                   5.4 Rules for Using a Data Object List (DOL)
     */
-    emvDols: (emvTags) => {
+    emvDolsDecode: (emvTags) => {
         let mainTags = Object.keys(emvTags);
         let dolTags = mainTags.filter((t) => (~t.indexOf('DOL')));
         if (dolTags.length) {
