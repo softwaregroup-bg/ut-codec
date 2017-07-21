@@ -509,27 +509,25 @@ var parsers = {
             emvTags = dolTags
                 .map((t) => ({tag: t, data: emvTags[t].val, internalTags: Object.keys(emvTags[t].val)}))
                 .reduce((allTags, dol) => {
-                    if (dol) {
-                        allTags[dol.tag].val = dol.internalTags.reduce((dolTags, dolInt) => {
-                            let extTag = allTags[dolInt];
-                            let dolTag = dolTags[dolInt];
-                            if (!extTag) { // no tag found in root tags list
-                                dolTags[dolInt].val = (new Array(dolTags[dolInt].len)).fill('00').join('');
-                            } else if (extTag.len === dolTag.len) {
-                                dolTags[dolInt].val = extTag.val;
-                            } else {
-                                let extNumType = emvDolNumericTypes[dolTag.tag];
-                                if (extNumType === 'n') { // non numeric value
-                                    dolTags[dolInt].val = parsers.getNonNumVal(extTag.val, dolTag.len, dolTag.len - extTag.len, false);
-                                } else if (extNumType === 'nc') { // non numeric value
-                                    dolTags[dolInt].val = parsers.getNonNumVal(extTag.val, dolTag.len, dolTag.len - extTag.len, true);
-                                } else { // numeric value
-                                    dolTags[dolInt].val = parsers.getNumVal(extTag.val, dolTag.len, dolTag.len - extTag.len);
-                                }
+                    allTags[dol.tag].val = dol.internalTags.reduce((dolTags, dolInt) => {
+                        let extTag = allTags[dolInt];
+                        let dolTag = dolTags[dolInt];
+                        if (!extTag) { // no tag found in root tags list
+                            dolTags[dolInt].val = (new Array(dolTags[dolInt].len)).fill('00').join('');
+                        } else if (extTag.len === dolTag.len) {
+                            dolTags[dolInt].val = extTag.val;
+                        } else {
+                            let extNumType = emvDolNumericTypes[dolTag.tag];
+                            if (extNumType === 'n') { // non numeric value
+                                dolTags[dolInt].val = parsers.getNonNumVal(extTag.val, dolTag.len, dolTag.len - extTag.len, false);
+                            } else if (extNumType === 'nc') { // non numeric value
+                                dolTags[dolInt].val = parsers.getNonNumVal(extTag.val, dolTag.len, dolTag.len - extTag.len, true);
+                            } else { // numeric value
+                                dolTags[dolInt].val = parsers.getNumVal(extTag.val, dolTag.len, dolTag.len - extTag.len);
                             }
-                            return dolTags;
-                        }, dol.data);
-                    }
+                        }
+                        return dolTags;
+                    }, dol.data);
                     return allTags;
                 }, emvTags);
         }
