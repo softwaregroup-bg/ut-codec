@@ -536,6 +536,9 @@ NDC.prototype.encode = function(message, $meta, context) {
                     case 'GS':
                         bufferString += this.groupSeparator;
                         break;
+                    case 'printers':
+                        bufferString += (message[field] || []).map(printer => printer.printer + printer.printerData).join(this.groupSeparator);
+                        break;
                     default:
                         bufferString += message[field] || '';
                 }
