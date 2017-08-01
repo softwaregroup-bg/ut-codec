@@ -1,3 +1,43 @@
+<a name="5.11.1"></a>
+## [5.11.1](https://github.com/softwaregroup-bg/ut-codec/compare/v5.11.0...v5.11.1) (2017-07-28)
+
+
+### Bug Fixes
+
+* translade -> translate ([8624c30](https://github.com/softwaregroup-bg/ut-codec/commit/8624c30))
+
+
+
+<a name="5.11.0"></a>
+# [5.11.0](https://github.com/softwaregroup-bg/ut-codec/compare/v5.10.1...v5.11.0) (2017-07-26)
+
+
+### Features
+
+* support multiple printers ([cbd1a98](https://github.com/softwaregroup-bg/ut-codec/commit/cbd1a98))
+
+
+
+<a name="5.10.1"></a>
+## [5.10.1](https://github.com/softwaregroup-bg/ut-codec/compare/v5.10.0...v5.10.1) (2017-07-18)
+
+
+### Bug Fixes
+
+* arqc format ([ffd1ce1](https://github.com/softwaregroup-bg/ut-codec/commit/ffd1ce1))
+
+
+
+<a name="5.10.0"></a>
+# [5.10.0](https://github.com/softwaregroup-bg/ut-codec/compare/v5.9.15...v5.10.0) (2017-07-18)
+
+
+### Features
+
+* zmk_arqc_arpc ([#8](https://github.com/softwaregroup-bg/ut-codec/issues/8)) ([1783665](https://github.com/softwaregroup-bg/ut-codec/commit/1783665))
+
+
+
 <a name="5.9.15"></a>
 ## [5.9.15](https://github.com/softwaregroup-bg/ut-codec/compare/v5.9.14...v5.9.15) (2017-06-27)
 
