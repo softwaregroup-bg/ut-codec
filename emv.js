@@ -39,8 +39,22 @@ function getNonNumVal(val, len, dolLenDiff) {
     }
 };
 
-function getValueHexLength(val) {
-    let len = (val.length / 2).toString(16).toUpperCase();
+/**
+ * @param {Object} tagObj decoded emv tag
+ * @param {string} tagObj.val decoded emv tag value
+ * @param {string} tagObj.len decoded emv tag value bytes length (/2)
+ */
+function getValueHexLength(tagObj) {
+    if (!tagObj || (!tagObj.val && !tagObj.len)) {
+        throw new Error('Data integrity error');
+    }
+    let len;
+    if (!tagObj.val || !tagObj.val.length) {
+        len = tagObj.len;
+    } else {
+        len = (tagObj.val.length / 2);
+    }
+    len = len.toString(16).toUpperCase();
 
     return (len.length % 2) ? `0${len}` : len;
 }
@@ -166,7 +180,7 @@ function tagsEncode(data) {
                     .map((k) => {
                         let tagObj = dol.val[k];
                         let tagTranslated = translateTagEncode(k);
-                        let tagLength = getValueHexLength(tagObj.val);
+                        let tagLength = getValueHexLength(tagObj);
 
                         return [tagTranslated, tagLength].join('');
                     })
@@ -186,10 +200,10 @@ function tagsEncode(data) {
     result = allDols
         .reduce((r, dol) => {
             let tagTranslated = translateTagEncode(dol);
-            let d = data[tagTranslated];
+            let d = Object.assign(data[dol], {val: data[tagTranslated]});
             let tagLength = getValueHexLength(d);
 
-            return `${r}${tagTranslated}${tagLength}${d}`;
+            return `${r}${tagTranslated}${tagLength}${d.val}`;
         }, '');
     // cleanup dols
     data = allDols
@@ -204,13 +218,13 @@ function tagsEncode(data) {
         if (!tagObj || !tagObj.tag) {
             return '';
         }
-        let tagLength = getValueHexLength(tagObj.val);
+        let tagLength = getValueHexLength(tagObj);
 
         return `${tagTranslated}${tagLength}${tagObj.val}`;
     }).join('');
 }
 
-module.exports = function() {
+module.exports = function emv() {
     if (!emvTagsConfig.map.encode) {
         emvEncodeMapTags();
     }
