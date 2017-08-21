@@ -155,15 +155,23 @@ function tagsEncode(data) {
     // transform data in dols
     data = Object.keys(data)
         .filter((k) => (~k.indexOf('DOL')))
-        .map((k) => ({
-            tag: k,
-            data: data[k]
-                .map((e) => {
-                    let k = Object.keys(e).pop();
-                    let tagTranslated = translateTagEncode(k);
-                    return [tagTranslated, e[k]].join('');
-                })
-        }))
+        .map((k) => {
+            var dol = data[k];
+            return {
+                tag: dol.tag,
+                data: Object.keys(dol.val)
+                    .sort((a, b) => {
+                        return dol.val[a].idx > dol.val[b].idx;
+                    })
+                    .map((k) => {
+                        let tagObj = dol.val[k];
+                        let tagTranslated = translateTagEncode(k);
+                        let tagLength = getValueHexLength(tagObj.val);
+
+                        return [tagTranslated, tagLength].join('');
+                    })
+            };
+        })
         .reduce((data, dol) => {
             data[dol.tag] = dol.data.join('');
             return data;
