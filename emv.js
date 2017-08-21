@@ -39,6 +39,12 @@ function getNonNumVal(val, len, dolLenDiff) {
     }
 };
 
+function getValueHexLength(val) {
+    let len = (val.length / 2).toString(16).toUpperCase();
+
+    return (len.length % 2) ? `0${len}` : len;
+}
+
 /**
  * @param {string} emvString emv input string
  * @param {Object} result object to store results in
@@ -172,8 +178,10 @@ function tagsEncode(data) {
     result = allDols
         .reduce((r, dol) => {
             let tagTranslated = translateTagEncode(dol);
-            let d = data[dol];
-            return `${r}${tagTranslated}${d.length / 2}${d}`;
+            let d = data[tagTranslated];
+            let tagLength = getValueHexLength(d);
+
+            return `${r}${tagTranslated}${tagLength}${d}`;
         }, '');
     // cleanup dols
     data = allDols
@@ -184,9 +192,13 @@ function tagsEncode(data) {
     // append all fields left to result
     return result + Object.keys(data).map((e) => {
         let tagTranslated = translateTagEncode(e);
-        let val = data[e];
-        var len = val.length / 2;
-        return `${tagTranslated}${len}${val}`;
+        let tagObj = data[e];
+        if (!tagObj || !tagObj.tag) {
+            return '';
+        }
+        let tagLength = getValueHexLength(tagObj.val);
+
+        return `${tagTranslated}${tagLength}${tagObj.val}`;
     }).join('');
 }
 
