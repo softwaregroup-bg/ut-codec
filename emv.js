@@ -132,11 +132,12 @@ function tagsDecode(emvString, result, dolIdx) {
  * @param {Object} emvTags decoded emv tags map
  */
 function dolDecode(emvTags) {
-    let mainTags = Object.keys(emvTags);
+    let data = Object.assign({}, emvTags);
+    let mainTags = Object.keys(data);
     let dolTags = mainTags.filter((t) => (~t.indexOf('DOL')));
     if (dolTags.length) {
-        emvTags = dolTags
-            .map((t) => ({tag: t, data: emvTags[t].val, internalTags: Object.keys(emvTags[t].val)}))
+        data = dolTags
+            .map((t) => ({tag: t, data: data[t].val, internalTags: Object.keys(data[t].val)}))
             .reduce((allTags, dol) => {
                 allTags[dol.tag].val = dol.internalTags.reduce((dolTags, dolInt) => {
                     let extTag = allTags[dolInt];
@@ -158,15 +159,16 @@ function dolDecode(emvTags) {
                     return dolTags;
                 }, dol.data);
                 return allTags;
-            }, emvTags);
+            }, data);
     }
-    return emvTags;
+    return data;
 };
 
 /**
- * @param {Object} data decoded emv tags map
+ * @param {Object} emvTags decoded emv tags map
  */
-function tagsEncode(data) {
+function tagsEncode(emvTags) {
+    let data = Object.assign({}, emvTags);
     let dolOrder = ['CDOL1', 'CDOL2', 'TDOL', 'PDOL', 'DDOL'];
     let result = '';
     // transform data in dols
@@ -203,7 +205,7 @@ function tagsEncode(data) {
     result = allDols
         .reduce((r, dol) => {
             let tagTranslated = translateTagEncode(dol);
-            let d = Object.assign(data[dol], {val: data[tagTranslated]});
+            let d = Object.assign({}, data[dol], {val: data[tagTranslated]});
             let tagLength = getValueHexLength(d);
 
             return `${r}${tagTranslated}${tagLength}${d.val}`;
