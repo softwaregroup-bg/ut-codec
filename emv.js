@@ -224,7 +224,7 @@ function tagsEncode(data) {
     }).join('');
 }
 
-module.exports = function emv() {
+module.exports = (function emv() {
     if (!emvTagsConfig.map.encode) {
         emvEncodeMapTags();
     }
@@ -234,4 +234,4 @@ module.exports = function emv() {
         dolDecode,
         tagsEncode
     };
-};
+})();

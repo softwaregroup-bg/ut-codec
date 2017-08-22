@@ -43,7 +43,6 @@ NDC.prototype.init = function(config) {
         var code = (mf.values.messageClass || '') + (mf.values.messageSubclass || '') + '|' + (mf.values.commandCode || '') + (mf.values.commandModifier || '');
         this.codes[code] = mf;
     });
-    emv = emv();
 };
 
 var parsers = {

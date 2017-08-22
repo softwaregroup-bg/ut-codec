@@ -40,7 +40,6 @@ function Iso8583(config) {
         this.fieldPatterns.push(bitSyntax.matcher(pattern.join(', ')));
         group += 1;
     }
-    emv = emv();
 }
 
 Iso8583.prototype.fieldSizes = function(bitmap, start) {
