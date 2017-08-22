@@ -45,7 +45,7 @@ function getNonNumVal(val, len, dolLenDiff) {
  * @param {string} tagObj.len decoded emv tag value bytes length (/2)
  */
 function getValueHexLength(tagObj) {
-    if (!tagObj || (!tagObj.val && !tagObj.len)) {
+    if (!tagObj || (!tagObj.val && tagObj.val !== '' && !tagObj.len && tagObj.len !== 0)) {
         throw new Error('Data integrity error');
     }
     let len;
@@ -213,16 +213,15 @@ function tagsEncode(emvTags) {
     // cleanup dols
     data = allDols
         .reduce((r, dol) => {
+            let tagTranslated = translateTagEncode(dol);
             delete r[dol];
+            delete r[tagTranslated];
             return r;
         }, data);
     // append all fields left to result
     return result + Object.keys(data).map((e) => {
         let tagTranslated = translateTagEncode(e);
         let tagObj = data[e];
-        if (!tagObj || !tagObj.tag) {
-            return '';
-        }
         let tagLength = getValueHexLength(tagObj);
 
         return `${tagTranslated}${tagLength}${tagObj.val}`;
