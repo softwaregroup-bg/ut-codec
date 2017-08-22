@@ -603,7 +603,7 @@ NDC.prototype.encode = function(message, $meta, context) {
             bufferString += this.fieldSeparator + message.mac;
         }
         if (message.emvTags || message.camFlags) {
-            bufferString += packSmartCardData(message.camFlags, message.emvTags);
+            bufferString += this.fieldSeparator + packSmartCardData(message.camFlags, message.emvTags);
         }
         return new Buffer(bufferString);
     }
