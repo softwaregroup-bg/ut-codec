@@ -65,10 +65,10 @@ function getValueHexLength(tagObj) {
  * @param {number=} dolIdx value position in data object list
  */
 function tagsDecode(emvString, result, dolIdx) {
-    var tag;
-    var len;
-    var val;
-    var isDol = false;
+    let tag;
+    let len;
+    let val;
+    let isDol = false;
     if (emvLongTags.indexOf(emvString.substr(0, 2).toLowerCase()) >= 0) { // 2 bytes tag
         tag = emvString.substr(0, 4);
         emvString = emvString.substr(4);
@@ -76,7 +76,7 @@ function tagsDecode(emvString, result, dolIdx) {
         tag = emvString.substr(0, 2);
         emvString = emvString.substr(2);
     }
-    var tagTranslated = translateTagDecode(tag);
+    let tagTranslated = translateTagDecode(tag);
     result[tagTranslated] = {tag};
     if (~tagTranslated.indexOf('DOL')) {
         isDol = true;
@@ -84,15 +84,15 @@ function tagsDecode(emvString, result, dolIdx) {
     if (dolIdx) {
         result[tagTranslated].idx = dolIdx - 1;
     }
-    var lenStr = emvString.substr(0, 2);
+    let lenStr = emvString.substr(0, 2);
     len = (lenStr === '') ? 0 : parseInt(emvString.substr(0, 2), 16);
     emvString = emvString.substr(2);
     if (!dolIdx && len > emvString.length * 2) {
         throw new Error('Data integrity error');
     }
     if (len >= 128) { // size is big
-        var byteNumSize = 0;
-        var cur = 128;
+        let byteNumSize = 0;
+        let cur = 128;
         while (cur >= 1) { // calculate big size
             cur = cur >> 1;
             if ((len & cur) === cur) {
@@ -129,7 +129,7 @@ function tagsDecode(emvString, result, dolIdx) {
 /**
  * EMV 4.3 Book 3                              5 Data Elements and Files
  * Application Specification                   5.4 Rules for Using a Data Object List (DOL)
- * @param {Object} emvTags
+ * @param {Object} emvTags decoded emv tags map
  */
 function dolDecode(emvTags) {
     let mainTags = Object.keys(emvTags);
@@ -163,14 +163,17 @@ function dolDecode(emvTags) {
     return emvTags;
 };
 
+/**
+ * @param {Object} data decoded emv tags map
+ */
 function tagsEncode(data) {
-    var dolOrder = ['CDOL1', 'CDOL2', 'TDOL', 'PDOL', 'DDOL'];
+    let dolOrder = ['CDOL1', 'CDOL2', 'TDOL', 'PDOL', 'DDOL'];
     let result = '';
     // transform data in dols
     data = Object.keys(data)
         .filter((k) => (~k.indexOf('DOL')))
         .map((k) => {
-            var dol = data[k];
+            let dol = data[k];
             return {
                 tag: dol.tag,
                 data: Object.keys(dol.val)
