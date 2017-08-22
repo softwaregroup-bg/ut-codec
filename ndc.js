@@ -333,7 +333,7 @@ var parsers = {
         smartCardData = (smartCardData && smartCardData.substring(4)) || '';
         var camFlags = smartCardData.substring(0, 4);
         var emvTags = smartCardData.substring(4);
-        return Object.assign({}, parsers.camFlagsDecode(new Buffer(camFlags, 'hex')), {emvTags: emv.dolDecode(emv.tagsDecode(emvTags, {}))});
+        return Object.assign({}, parsers.camFlagsDecode(new Buffer(camFlags, 'hex')), {emvTags: emv.tagsDecode(emvTags, {})});
     },
     camFlagsDecode: (buffer) => {
         let b1 = buffer.slice(0, 1).readInt8();

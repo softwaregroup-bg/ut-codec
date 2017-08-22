@@ -115,7 +115,7 @@ Iso8583.prototype.decode = function(buffer, $meta) {
             message = err(message);
         }
         if (message[this.emvTagsField]) {
-            message = Object.assign(message, {emvTags: emv.dolDecode(emv.tagsDecode(message[this.emvTagsField]))});
+            message = Object.assign(message, {emvTags: emv.tagsDecode(message[this.emvTagsField])});
         }
         return message;
     } else {
