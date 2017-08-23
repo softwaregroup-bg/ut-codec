@@ -114,7 +114,7 @@ function tagsDecode(emvString, result, dolIdx) {
             emvString = emvString.substr(len * 2);
         }
     }
-    let constructedTagByte = (new Buffer(tag, 'hex')).slice(0, 1);
+    let constructedTagByte = (new Buffer(tag, 'hex')).slice(0, 1)[0];
     if ((constructedTagByte & 32) === 32) {
         result[tagTranslated].val = (isDol ? tagsDecode(val, {}, 1) : tagsDecode(val, {}, (dolIdx ? dolIdx + 1 : dolIdx)));
     } else {
@@ -223,8 +223,14 @@ function tagsEncode(emvTags) {
         let tagTranslated = translateTagEncode(e);
         let tagObj = data[e];
         let tagLength = getValueHexLength(tagObj);
+        let tagValue = tagObj.val;
 
-        return `${tagTranslated}${tagLength}${tagObj.val}`;
+        let constructedTagByte = (new Buffer(tagTranslated, 'hex')).slice(0, 1)[0];
+        if ((constructedTagByte & 32) === 32) {
+            tagValue = tagsEncode(tagObj.val);
+        }
+
+        return `${tagTranslated}${tagLength}${tagValue}`;
     }).join('');
 }
 
