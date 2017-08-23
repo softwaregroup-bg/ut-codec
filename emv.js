@@ -87,9 +87,6 @@ function tagsDecode(emvString, result, dolIdx) {
     let lenStr = emvString.substr(0, 2);
     len = (lenStr === '') ? 0 : parseInt(emvString.substr(0, 2), 16);
     emvString = emvString.substr(2);
-    if (!dolIdx && len > emvString.length * 2) {
-        throw new Error('Data integrity error');
-    }
     if (len >= 128) { // size is big
         let byteNumSize = 0;
         let cur = 128;
@@ -101,6 +98,9 @@ function tagsDecode(emvString, result, dolIdx) {
         }
         len = parseInt(emvString.substr(0, byteNumSize * 2), 16);
         emvString = emvString.substr(byteNumSize * 2);
+    }
+    if (!dolIdx && len > emvString.length * 2) {
+        throw new Error('Data integrity error');
     }
     result[tagTranslated].len = len;
     if (!len) {
