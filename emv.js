@@ -99,7 +99,7 @@ function tagsDecode(emvString, result, dolIdx) {
         len = parseInt(emvString.substr(0, byteNumSize * 2), 16);
         emvString = emvString.substr(byteNumSize * 2);
     }
-    if (!dolIdx && len > emvString.length * 2) {
+    if (!dolIdx && len > emvString.length / 2) {
         throw new Error('Data integrity error');
     }
     result[tagTranslated].len = len;
