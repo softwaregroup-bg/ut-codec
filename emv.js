@@ -45,14 +45,15 @@ function getNonNumVal(val, len, dolLenDiff) {
  * @param {string} tagObj.len decoded emv tag value bytes length (/2)
  */
 function getValueHexLength(tagObj) {
-    if (!tagObj || (!tagObj.val && tagObj.val !== '' && !tagObj.len && tagObj.len !== 0)) {
-        throw new Error('Data integrity error');
-    }
     let len;
-    if (!tagObj.val || !tagObj.val.length) {
-        len = tagObj.len;
+    if (!tagObj || (!tagObj.len && !tagObj.val)) {
+        len = 0;
     } else {
-        len = (tagObj.val.length / 2);
+        if (!tagObj.val || !tagObj.val.length) {
+            len = tagObj.len || 0;
+        } else {
+            len = (tagObj.val.length / 2);
+        }
     }
     len = len.toString(16).toUpperCase();
 
