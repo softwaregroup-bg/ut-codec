@@ -599,11 +599,11 @@ NDC.prototype.encode = function(message, $meta, context) {
                 }
             }
         });
-        if (message.mac) {
-            bufferString += this.fieldSeparator + message.mac;
-        }
         if (message.emvTags || message.camFlags) {
             bufferString += this.fieldSeparator + packSmartCardData(message.camFlags, message.emvTags);
+        }
+        if (message.mac) {
+            bufferString += this.fieldSeparator + message.mac;
         }
         return new Buffer(bufferString);
     }
