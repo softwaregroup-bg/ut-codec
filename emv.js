@@ -70,7 +70,7 @@ function tagsDecode(emvString, result, dolIdx) {
     let len;
     let val;
     let isDol = false;
-    if (emvLongTags.indexOf(emvString.substr(0, 2).toLowerCase()) >= 0) { // 2 bytes tag
+    if (emvLongTags.includes(emvString.substr(0, 2).toLowerCase())) { // 2 bytes tag
         tag = emvString.substr(0, 4);
         emvString = emvString.substr(4);
     } else {
@@ -79,7 +79,7 @@ function tagsDecode(emvString, result, dolIdx) {
     }
     let tagTranslated = translateTagDecode(tag);
     result[tagTranslated] = {tag};
-    if (~tagTranslated.indexOf('DOL')) {
+    if (tagTranslated.includes('DOL')) {
         isDol = true;
     }
     if (dolIdx) {
@@ -135,7 +135,7 @@ function tagsDecode(emvString, result, dolIdx) {
 function dolDecode(emvTags) {
     let data = Object.assign({}, emvTags);
     let mainTags = Object.keys(data);
-    let dolTags = mainTags.filter((t) => (~t.indexOf('DOL')));
+    let dolTags = mainTags.filter((t) => (t.includes('DOL')));
     if (dolTags.length) {
         data = dolTags
             .map((t) => ({tag: t, data: data[t].val, internalTags: Object.keys(data[t].val)}))
@@ -174,7 +174,7 @@ function tagsEncode(emvTags) {
     let result = '';
     // transform data in dols
     data = Object.keys(data)
-        .filter((k) => (~k.indexOf('DOL')))
+        .filter((k) => (k.includes('DOL')))
         .map((k) => {
             let dol = data[k];
             return {
@@ -200,7 +200,7 @@ function tagsEncode(emvTags) {
     let allTags = Object.keys(data);
     // make sure that dols are constructed in order
     let allDols = dolOrder
-        .map((dol) => (~allTags.indexOf(dol) ? dol : 0))
+        .map((dol) => (allTags.includes(dol) ? dol : 0))
         .filter((e) => e);
     // append dols to result
     result = allDols
