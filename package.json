@@ -10,7 +10,7 @@
     "lodash.isobject": "3.0.2",
     "lodash.merge": "4.6.0",
     "lodash.omit": "4.5.0",
-    "ut-bitsyntax": "^6.0.7",
+    "ut-bitsyntax": "^6.0.14",
     "ut-error": "^5.4.0"
   },
   "devDependencies": {
