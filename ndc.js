@@ -1,6 +1,7 @@
 var merge = require('lodash.merge');
 var map = require('./ndcMap');
 var defaultFormat = require('./ndc.messages');
+var hrtime = require('browser-process-hrtime');
 
 var emv = require('./emv');
 
@@ -54,6 +55,11 @@ var parsers = {
     specificReject: (status) => {
         var e = new Error(map.specificErrors[status] || 'Specific command reject');
         e.type = 'aptra.commandReject.' + status;
+        throw e;
+    },
+    reject: () => {
+        var e = new Error('Command reject');
+        e.type = 'aptra.commandReject';
         throw e;
     },
     fault: (deviceIdentifierAndStatus, severities, diagnosticStatus, suppliesStatus) => {
@@ -331,32 +337,42 @@ var parsers = {
         // There are 16 available CAM flags.These are encoded as the bits in two bytes, and are converted to ASCII hex(four bytes) for transmission. Each can have the value 0x0 or 0x1
         var smartCardData = fields.find(field => field.substring(0, 4) === '5CAM');
         smartCardData = (smartCardData && smartCardData.substring(4)) || '';
-        var camFlags = smartCardData.substring(0, 4);
+        var camFlags = new Buffer(smartCardData.substring(0, 4), 'hex');
         var emvTags = smartCardData.substring(4);
-        return Object.assign({}, parsers.camFlagsDecode(new Buffer(camFlags, 'hex')), {emvTags: emv.tagsDecode(emvTags, {})});
+        return Object.assign(
+            {},
+            (!camFlags.length ? {} : parsers.camFlagsDecode(camFlags)),
+            (!emvTags.length ? {} : {emvTags: emv.tagsDecode(emvTags, {})})
+        );
     },
     camFlagsDecode: (buffer) => {
-        let b1 = buffer.slice(0, 1).readInt8();
-        let b2 = buffer.slice(1, 2).readInt8();
-        let a = [];
-        let b = [];
+        var b1 = buffer.slice(0, 1);
+        var a = [];
+        if (b1.length) {
+            b1 = b1.readInt8();
+            a.push(0);
+            a.push(((b1 & 2) === 2) ? 1 : 0);
+            a.push(((b1 & 4) === 4) ? 1 : 0);
+            a.push(((b1 & 8) === 8) ? 1 : 0);
+            a.push(((b1 & 16) === 16) ? 1 : 0);
+            a.push(((b1 & 32) === 32) ? 1 : 0);
+            a.push(0);
+            a.push(0);
+        }
+        var b2 = buffer.slice(1, 2);
+        var b = [];
+        if (b2.length) {
+            b2 = b2.readInt8();
+            b.push(0);
+            b.push(0);
+            b.push(0);
+            b.push(((b2 & 8) === 8) ? 1 : 0);
+            b.push(0);
+            b.push(((b2 & 32) === 32) ? 1 : 0);
+            b.push(((b2 & 64) === 64) ? 1 : 0);
+            b.push(((b2 & 128) === 128) ? 1 : 0);
+        }
 
-        a.push(0);
-        a.push(((b1 & 2) === 2) ? 1 : 0);
-        a.push(((b1 & 4) === 4) ? 1 : 0);
-        a.push(((b1 & 8) === 8) ? 1 : 0);
-        a.push(((b1 & 16) === 16) ? 1 : 0);
-        a.push(((b1 & 32) === 32) ? 1 : 0);
-        a.push(0);
-        a.push(0);
-        b.push(0);
-        b.push(0);
-        b.push(0);
-        b.push(((b2 & 8) === 8) ? 1 : 0);
-        b.push(0);
-        b.push(((b2 & 32) === 32) ? 1 : 0);
-        b.push(((b2 & 64) === 64) ? 1 : 0);
-        b.push(((b2 & 128) === 128) ? 1 : 0);
         return {camFlags: [a, b]};
     },
     pinBlock: pin => pin && pin.split && pin.split('').map((c) => ({
@@ -493,24 +509,20 @@ NDC.prototype.decode = function(buffer, $meta, context) {
                     $meta.trace = 'trn:' + context.traceTransactionReady;
                     context.traceTransactionReady += 1;
                     break;
+                case 'aptra.transaction':
+                    message.transactionTimeout = (context.session && context.session.transactionTimeout) || 55;
+                    context.transactionReplyTime = hrtime()[0] + message.transactionTimeout;
+                    message.transactionRequestId = context.transactionRequestId = (context.transactionRequestId || 0) + 1;
+                    break;
             }
 
             var fn = parsers[command.method];
             if (typeof fn === 'function') {
-                try {
-                    merge(message, fn.apply(parsers, tokens));
-                } catch (e) {
-                    $meta.mtid = 'error';
-                    message.type = e.type;
-                    message.message = e.message;
-                    if (!e.type) { // capture stack for unexpected errors
-                        message.stack = e.stack;
-                    }
-                }
+                merge(message, fn.apply(parsers, tokens));
             } else {
-                $meta.mtid = 'error';
-                message.type = 'aptra.parser';
-                message.message = 'No parser found for message: ' + command.method;
+                var e = new Error('No parser found for message: ' + command.method);
+                e.type = 'aptra.decode';
+                throw e;
             }
             message.tokens = tokens;
         } else {
@@ -569,10 +581,20 @@ NDC.prototype.encode = function(message, $meta, context) {
             context.traceCentralKeys += 1;
             break;
         case 'transaction': // sim
-        case 'transactionReply':
             context.traceTransaction = context.traceTransaction || 1;
             $meta.trace = 'trn:' + context.traceTransaction;
             context.traceTransaction += 1;
+            break;
+        case 'transactionReply':
+            if (message.transactionRequestId === context.transactionRequestId && context.transactionReplyTime > hrtime()[0]) {
+                context.traceTransaction = context.traceTransaction || 1;
+                $meta.trace = 'trn:' + context.traceTransaction;
+                context.traceTransaction += 1;
+            } else {
+                var e = new Error('Transaction timed out');
+                e.type = 'aptra.timeout';
+                throw e;
+            }
             break;
     }
 
