@@ -19,7 +19,11 @@ function Iso8583(config) {
     this.fieldPatterns = [];
     this.fieldBuilders = [bitSyntax.parse('field:fieldSize/' + getFormat(this.fieldFormat['0'].format))];
     this.fieldBuilders.mtid = bitSyntax.parse('field:fieldSize/' + getFormat(this.fieldFormat.mtid.format));
+    this.fieldBuilders.header = bitSyntax.parse('field:fieldSize/' + getFormat(this.fieldFormat.header.format));
+    this.fieldBuilders.footer = bitSyntax.parse('field:fieldSize/' + getFormat(this.fieldFormat.footer.format));
     this.prefixBuilders = [null];
+    this.footerMatcher = bitSyntax.matcher('footer:' + this.fieldFormat.footer.size + '/' + getFormat(this.fieldFormat.footer.format)  +
+    ', rest/binary');
     var group = 0;
     while (this.fieldFormat[(group + 1) * 64]) {
         var pattern = [];
@@ -66,6 +70,7 @@ Iso8583.prototype.decode = function(buffer, $meta) {
         while (frame) {
             var fieldPattern = this.fieldPatterns[group];
             if (!fieldPattern) {
+                frame = this.footerMatcher(frame.rest);
                 if (frame.rest && frame.rest.length) {
                     throw new Error('Not all data was parsed. Remaining ' + frame.rest.length + ' bytes at offset ' + parsedLength +
                         ' starting with 0x' + frame.rest.toString('hex') + '\r\nmessage:' + JSON.stringify(message));
@@ -80,6 +85,9 @@ Iso8583.prototype.decode = function(buffer, $meta) {
                 for (var failField = (group + 1) * 64; failField >= group * 64 + 1; failField -= 1) { // find at which field we failed by skipping fields from the end
                     fieldSizes['field' + failField + 'Size'] = 0;
                     frame = fieldPattern && fieldPattern(rest, fieldSizes);
+                    if (frame) {
+                        frame = this.footerMatcher(frame.rest);
+                    }
                     if (frame) {
                         parsedLength += rest.length - frame.rest.length;
                         throw new Error('Parsing failed at field ' + failField + '. Remaining ' + frame.rest.length + ' bytes at offset ' + parsedLength +
@@ -97,7 +105,11 @@ Iso8583.prototype.decode = function(buffer, $meta) {
             }
             group += 1;
         }
-        $meta.opcode = String(message[3] || '').substr(0, 2);
+        if (message.mtid === '0800') {
+            $meta.opcode = String(message[70] || '').substr(0, 3);
+        } else {
+            $meta.opcode = String(message[3] || '').substr(0, 2);
+        }
         $meta.trace = message[11];
         if (message.mtid && message.mtid.slice) {
             $meta.mtid = {
@@ -169,7 +181,9 @@ Iso8583.prototype.encode = function(message, $meta, context) {
         }
     }
     buffers.unshift(this.encodeField('mtid', message.mtid || new Buffer([])));
-
+    buffers.unshift(this.encodeField('header', message.header || new Buffer([])));
+    buffers.pop(this.encodeField('footer', message.footer || new Buffer([])));
+    
     return Buffer.concat(buffers);
 };
 
