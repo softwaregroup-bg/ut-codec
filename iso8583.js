@@ -70,6 +70,7 @@ Iso8583.prototype.decode = function(buffer, $meta) {
             var fieldPattern = this.fieldPatterns[group];
             if (!fieldPattern) {
                 frame = this.footerMatcher(frame.rest);
+                message.footer = frame && frame.footer;
                 if (frame.rest && frame.rest.length) {
                     throw new Error('Not all data was parsed. Remaining ' + frame.rest.length + ' bytes at offset ' + parsedLength +
                         ' starting with 0x' + frame.rest.toString('hex') + '\r\nmessage:' + JSON.stringify(message));
@@ -86,6 +87,7 @@ Iso8583.prototype.decode = function(buffer, $meta) {
                     frame = fieldPattern && fieldPattern(rest, fieldSizes);
                     if (frame) {
                         frame = this.footerMatcher(frame.rest);
+                        message.footer = frame && frame.footer;
                     }
                     if (frame) {
                         parsedLength += rest.length - frame.rest.length;
@@ -180,8 +182,8 @@ Iso8583.prototype.encode = function(message, $meta, context) {
         }
     }
     buffers.unshift(this.encodeField('mtid', message.mtid || new Buffer([])));
-    buffers.unshift(this.encodeField('header', message.header || new Buffer([])));
-    buffers.pop(this.encodeField('footer', message.footer || new Buffer([])));
+    buffers.unshift(this.encodeField('header', message.header || Buffer.alloc(this.fieldFormat.header.size)));
+    buffers.push(this.encodeField('footer', message.footer || Buffer.alloc(this.fieldFormat.footer.size)));
 
     return Buffer.concat(buffers);
 };
