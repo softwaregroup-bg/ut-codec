@@ -22,8 +22,7 @@ function Iso8583(config) {
     this.fieldBuilders.header = bitSyntax.parse('field:fieldSize/' + getFormat(this.fieldFormat.header.format));
     this.fieldBuilders.footer = bitSyntax.parse('field:fieldSize/' + getFormat(this.fieldFormat.footer.format));
     this.prefixBuilders = [null];
-    this.footerMatcher = bitSyntax.matcher('footer:' + this.fieldFormat.footer.size + '/' + getFormat(this.fieldFormat.footer.format)  +
-    ', rest/binary');
+    this.footerMatcher = bitSyntax.matcher('footer:' + this.fieldFormat.footer.size + '/' + getFormat(this.fieldFormat.footer.format) + ', rest/binary');
     var group = 0;
     while (this.fieldFormat[(group + 1) * 64]) {
         var pattern = [];
@@ -183,7 +182,7 @@ Iso8583.prototype.encode = function(message, $meta, context) {
     buffers.unshift(this.encodeField('mtid', message.mtid || new Buffer([])));
     buffers.unshift(this.encodeField('header', message.header || new Buffer([])));
     buffers.pop(this.encodeField('footer', message.footer || new Buffer([])));
-    
+
     return Buffer.concat(buffers);
 };
 
