@@ -69,11 +69,15 @@ Iso8583.prototype.decode = function(buffer, $meta) {
         while (frame) {
             var fieldPattern = this.fieldPatterns[group];
             if (!fieldPattern) {
-                frame = this.footerMatcher(frame.rest);
-                message.footer = frame && frame.footer;
                 if (frame.rest && frame.rest.length) {
-                    throw new Error('Not all data was parsed. Remaining ' + frame.rest.length + ' bytes at offset ' + parsedLength +
-                        ' starting with 0x' + frame.rest.toString('hex') + '\r\nmessage:' + JSON.stringify(message));
+                    if (this.fieldFormat.footer && this.fieldFormat.footer.size) {
+                        frame = this.footerMatcher(frame.rest || Buffer.alloc(0));
+                        message.footer = frame && frame.footer;
+                    }
+                    if (frame.rest && frame.rest.length) {
+                        throw new Error('Not all data was parsed. Remaining ' + frame.rest.length + ' bytes at offset ' + parsedLength +
+                            ' starting with 0x' + frame.rest.toString('hex') + '\r\nmessage:' + JSON.stringify(message));
+                    }
                 } else {
                     break;
                 }
@@ -85,8 +89,8 @@ Iso8583.prototype.decode = function(buffer, $meta) {
                 for (var failField = (group + 1) * 64; failField >= group * 64 + 1; failField -= 1) { // find at which field we failed by skipping fields from the end
                     fieldSizes['field' + failField + 'Size'] = 0;
                     frame = fieldPattern && fieldPattern(rest, fieldSizes);
-                    if (frame) {
-                        frame = this.footerMatcher(frame.rest);
+                    if (frame && frame.rest && frame.rest.length && this.fieldFormat.footer && this.fieldFormat.footer.size) {
+                        frame = this.footerMatcher(frame.rest || Buffer.alloc(0));
                         message.footer = frame && frame.footer;
                     }
                     if (frame) {
@@ -182,8 +186,12 @@ Iso8583.prototype.encode = function(message, $meta, context) {
         }
     }
     buffers.unshift(this.encodeField('mtid', message.mtid || new Buffer([])));
-    buffers.unshift(this.encodeField('header', message.header || Buffer.alloc(this.fieldFormat.header.size)));
-    buffers.push(this.encodeField('footer', message.footer || Buffer.alloc(this.fieldFormat.footer.size)));
+    if (this.fieldFormat.header && this.fieldFormat.header.size) {
+        buffers.unshift(this.encodeField('header', message.header || Buffer.alloc(this.fieldFormat.header.size)));
+    }
+    if (this.fieldFormat.footer && this.fieldFormat.footer.size) {
+        buffers.push(this.encodeField('footer', message.footer || Buffer.alloc(this.fieldFormat.footer.size)));
+    }
 
     return Buffer.concat(buffers);
 };
