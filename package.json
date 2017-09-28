@@ -1,8 +1,9 @@
 {
   "name": "ut-codec",
-  "version": "5.15.0",
+  "version": "5.16.0-rc.6",
   "main": "./index.js",
   "dependencies": {
+    "browser-process-hrtime": "0.1.2",
     "iconv-lite": "0.4.15",
     "lodash.assign": "4.2.0",
     "lodash.invert": "4.3.0",
