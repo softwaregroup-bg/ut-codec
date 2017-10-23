@@ -1,3 +1,30 @@
+<a name="5.16.0"></a>
+# [5.16.0](https://github.com/softwaregroup-bg/ut-codec/compare/v5.15.0...v5.16.0) (2017-10-23)
+
+
+### Bug Fixes
+
+* add dependency ([e162961](https://github.com/softwaregroup-bg/ut-codec/commit/e162961))
+* differentiate tags ([#24](https://github.com/softwaregroup-bg/ut-codec/issues/24)) ([d8558b3](https://github.com/softwaregroup-bg/ut-codec/commit/d8558b3))
+* improve error message ([d5c5d48](https://github.com/softwaregroup-bg/ut-codec/commit/d5c5d48))
+* index out of bounds ([dbd3eb6](https://github.com/softwaregroup-bg/ut-codec/commit/dbd3eb6))
+* KW/KQ parsing ([c05d3e1](https://github.com/softwaregroup-bg/ut-codec/commit/c05d3e1))
+* missing break ([#23](https://github.com/softwaregroup-bg/ut-codec/issues/23)) ([adedd10](https://github.com/softwaregroup-bg/ut-codec/commit/adedd10))
+* separate emv logic ([e0319ef](https://github.com/softwaregroup-bg/ut-codec/commit/e0319ef))
+* throw decode error to force disconnect ([44369da](https://github.com/softwaregroup-bg/ut-codec/commit/44369da))
+* track transactionRequestId in faults ([b956a6d](https://github.com/softwaregroup-bg/ut-codec/commit/b956a6d))
+* use matcher instead of match, which is not recommended ([0ca2595](https://github.com/softwaregroup-bg/ut-codec/commit/0ca2595))
+
+
+### Features
+
+* fallback to $meta.method ([69d0e62](https://github.com/softwaregroup-bg/ut-codec/commit/69d0e62))
+* full header and footer support ([c14f47c](https://github.com/softwaregroup-bg/ut-codec/commit/c14f47c))
+* map 0800 network codes ([#27](https://github.com/softwaregroup-bg/ut-codec/issues/27)) ([a96b3da](https://github.com/softwaregroup-bg/ut-codec/commit/a96b3da))
+* track transaction  request timeouts ([f6af754](https://github.com/softwaregroup-bg/ut-codec/commit/f6af754))
+
+
+
 <a name="5.15.0"></a>
 # [5.15.0](https://github.com/softwaregroup-bg/ut-codec/compare/v5.14.0...v5.15.0) (2017-09-13)
 
