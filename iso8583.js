@@ -10,6 +10,14 @@ function getFormat(format, fallback) {
 }
 
 function Iso8583(config) {
+    this.networkCodes = Object.assign({
+        '001': 'keyChange',
+        '002': 'signOff',
+        '061': 'echo',
+        '161': 'keyChange',
+        '201': 'cutOver',
+        '301': 'echo'
+    }, config.networkCodes);
     this.emvTagsField = config.emvTagsField || 55;
     this.fieldFormat = merge({}, defaultFields[(config.version || '0') + (config.baseEncoding || 'ascii')], config.fieldFormat);
     this.framePattern = bitSyntax.matcher('header:' + this.fieldFormat.header.size + '/' + getFormat(this.fieldFormat.header.format) +
@@ -19,7 +27,10 @@ function Iso8583(config) {
     this.fieldPatterns = [];
     this.fieldBuilders = [bitSyntax.parse('field:fieldSize/' + getFormat(this.fieldFormat['0'].format))];
     this.fieldBuilders.mtid = bitSyntax.parse('field:fieldSize/' + getFormat(this.fieldFormat.mtid.format));
+    this.fieldBuilders.header = bitSyntax.parse('field:fieldSize/' + getFormat(this.fieldFormat.header.format));
+    this.fieldBuilders.footer = bitSyntax.parse('field:fieldSize/' + getFormat(this.fieldFormat.footer.format));
     this.prefixBuilders = [null];
+    this.footerMatcher = bitSyntax.matcher('footer:' + this.fieldFormat.footer.size + '/' + getFormat(this.fieldFormat.footer.format) + ', rest/binary');
     var group = 0;
     while (this.fieldFormat[(group + 1) * 64]) {
         var pattern = [];
@@ -67,11 +78,16 @@ Iso8583.prototype.decode = function(buffer, $meta) {
             var fieldPattern = this.fieldPatterns[group];
             if (!fieldPattern) {
                 if (frame.rest && frame.rest.length) {
-                    throw new Error('Not all data was parsed. Remaining ' + frame.rest.length + ' bytes at offset ' + parsedLength +
+                    if (this.fieldFormat.footer && this.fieldFormat.footer.size) {
+                        frame = this.footerMatcher(frame.rest || Buffer.alloc(0));
+                        message.footer = frame && frame.footer;
+                    }
+                    if (frame.rest && frame.rest.length) {
+                        throw new Error('Not all data was parsed. Remaining ' + frame.rest.length + ' bytes at offset ' + parsedLength +
                         ' starting with 0x' + frame.rest.toString('hex') + '\r\nmessage:' + JSON.stringify(message));
-                } else {
-                    break;
+                    }
                 }
+                break;
             }
             var fieldSizes = this.fieldSizes(frame['field' + bitmapField], group * 64 + 1);
             var rest = frame.rest;
@@ -80,6 +96,10 @@ Iso8583.prototype.decode = function(buffer, $meta) {
                 for (var failField = (group + 1) * 64; failField >= group * 64 + 1; failField -= 1) { // find at which field we failed by skipping fields from the end
                     fieldSizes['field' + failField + 'Size'] = 0;
                     frame = fieldPattern && fieldPattern(rest, fieldSizes);
+                    if (frame && frame.rest && frame.rest.length && this.fieldFormat.footer && this.fieldFormat.footer.size) {
+                        frame = this.footerMatcher(frame.rest || Buffer.alloc(0));
+                        message.footer = frame && frame.footer;
+                    }
                     if (frame) {
                         parsedLength += rest.length - frame.rest.length;
                         throw new Error('Parsing failed at field ' + failField + '. Remaining ' + frame.rest.length + ' bytes at offset ' + parsedLength +
@@ -97,7 +117,12 @@ Iso8583.prototype.decode = function(buffer, $meta) {
             }
             group += 1;
         }
-        $meta.opcode = String(message[3] || '').substr(0, 2);
+        if (message.mtid === '0800' || message.mtid === '0810') {
+            $meta.opcode = String(message[70] || '');
+            $meta.opcode = this.networkCodes[$meta.opcode] || $meta.opcode;
+        } else {
+            $meta.opcode = String(message[3] || '').substr(0, 2);
+        }
         $meta.trace = message[11];
         if (message.mtid && message.mtid.slice) {
             $meta.mtid = {
@@ -169,6 +194,12 @@ Iso8583.prototype.encode = function(message, $meta, context) {
         }
     }
     buffers.unshift(this.encodeField('mtid', message.mtid || new Buffer([])));
+    if (this.fieldFormat.header && this.fieldFormat.header.size) {
+        buffers.unshift(this.encodeField('header', message.header || Buffer.alloc(this.fieldFormat.header.size)));
+    }
+    if (this.fieldFormat.footer && this.fieldFormat.footer.size) {
+        buffers.push(this.encodeField('footer', message.footer || Buffer.alloc(this.fieldFormat.footer.size)));
+    }
 
     return Buffer.concat(buffers);
 };
